@@ -24,10 +24,16 @@ meson compile
 sudo meson install
 ```
 
-To enable debug logs set `varnam_debug` to `true` by using the following command, before compiling the project.
+To enable debug logs set `varnam_debug` to `true` by using the following command, before compiling the project. 
 
 ```bash
 meson configure -Dvarnam_debug=true
+```
+
+If meson version is less than `1.1` run the following command before `meson setup`.
+
+```bash
+mv meson.options meson_options.txt
 ```
 
 ## Uninstall

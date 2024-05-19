@@ -1,2 +1,0 @@
-# For older meson versions( < 1.1)
-option('varnam_debug', type: 'boolean', value: false)

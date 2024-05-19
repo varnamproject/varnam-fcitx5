@@ -32,7 +32,7 @@ FCITX_CONFIGURATION(
     Option<bool> shouldLearnWords{this, "Learn Words",
                                   _("Enable Learning New Words"), false};
 
-    // Enable Learning Words on commit
+    // Strictly Follow Schema
     Option<bool> strictlyFollowSchema{
         this, "Strictly Follow Schema",
         _("Strictly Follow Schema For Dictionary Results"), false};
@@ -47,7 +47,7 @@ FCITX_CONFIGURATION(
         this, "Pattern Dictionary Suggestions Limit",
         _("Pattern Dictionary Suggestions Limit"), 3, IntConstrain(0, 10)};
 
-    // Pattern Dictionary Suggestions Limit
+    // Tokenizer Suggestions Limit
     Option<int, IntConstrain> tokenizerSuggestionsLimit{
         this, "Tokenizer Suggestions Limit", _("Tokenizer Suggestions Limit"),
         10, IntConstrain(0, 10)};
