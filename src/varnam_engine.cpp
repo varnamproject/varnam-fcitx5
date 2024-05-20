@@ -6,7 +6,6 @@
 #include <cstring>
 #include <fcitx-config/iniparser.h>
 #include <fcitx/inputpanel.h>
-#include <sstream>
 #include <vector>
 
 extern "C" {
@@ -35,7 +34,7 @@ VarnamEngine::~VarnamEngine() {
 void VarnamEngine::activate(const InputMethodEntry &entry,
                             InputContextEvent &contextEvent) {
 #ifdef DEBUG_MODE
-  VARNAM_INFO() << "activate schema:" << entry.uniqueName();
+  VARNAM_INFO() << "activate scheme:" << entry.uniqueName();
 #endif
 
   char *schemeName = (char *)entry.uniqueName().c_str();
@@ -45,7 +44,7 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
     throw std::runtime_error("failed to initialize varnam");
   }
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_MATCH_EXACT,
-                config_.strictlyFollowSchema.value());
+                config_.strictlyFollowScheme.value());
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_SUGGESTIONS_LIMIT,
                 config_.dictionarySuggestionsLimit.value());
   varnam_config(varnam_handle,
@@ -58,7 +57,7 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
 void VarnamEngine::deactivate(const InputMethodEntry &entry,
                               InputContextEvent &event) {
 #ifdef DEBUG_MODE
-  VARNAM_INFO() << "deactivate schema:" << entry.uniqueName();
+  VARNAM_INFO() << "deactivate scheme:" << entry.uniqueName();
 #endif
   if (event.type() == EventType::InputContextSwitchInputMethod) {
     auto ic = event.inputContext();
@@ -133,23 +132,7 @@ void VarnamEngine::setConfig(const RawConfig &config) {
   safeSaveAsIni(config_, "conf/varnam.conf");
 }
 
-void VarnamEngine::reloadConfig() {
-  readAsIni(config_, "conf/varnam.conf");
-  selectionKeyModifer_ = KeyState::NoState;
-  switch (config_.chooseModifier.value()) {
-  case ChooseModifier::Alt:
-    selectionKeyModifer_ = KeyState::Alt;
-    break;
-  case ChooseModifier::Control:
-    selectionKeyModifer_ = KeyState::Ctrl;
-    break;
-  case ChooseModifier::Super:
-    selectionKeyModifer_ = KeyState::Super;
-    break;
-  default:
-    break;
-  }
-}
+void VarnamEngine::reloadConfig() { readAsIni(config_, "conf/varnam.conf"); }
 
 } // namespace fcitx
 
