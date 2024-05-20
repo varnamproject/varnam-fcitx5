@@ -9,3 +9,4 @@ builddir/
 **/CMakeLists.txt
 **/CMakeCache.txt
 CMakeFiles/
+meson_options.txt

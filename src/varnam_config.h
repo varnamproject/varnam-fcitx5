@@ -30,12 +30,12 @@ FCITX_CONFIGURATION(
 
     // Enable Learning Words on commit
     Option<bool> shouldLearnWords{this, "Learn Words",
-                                  _("Enable Learning New Words"), false};
+                                  _("Enable Learning New Words"), true};
 
     // Strictly Follow Schema
-    Option<bool> strictlyFollowSchema{
-        this, "Strictly Follow Schema",
-        _("Strictly Follow Schema For Dictionary Results"), false};
+    Option<bool> strictlyFollowScheme{
+        this, "Strictly Follow Scheme",
+        _("Strictly Follow Scheme For Dictionary Results"), false};
 
     // Dictionary Suggestions Limit
     Option<int, IntConstrain> dictionarySuggestionsLimit{
@@ -83,11 +83,7 @@ FCITX_CONFIGURATION(
         _("Next Page"),
         {Key("Alt+Right")},
         KeyListConstrain(KeyConstrainFlag::AllowModifierLess)};
-
-    // Key Modifier
-    OptionWithAnnotation<ChooseModifier, ChooseModifierI18NAnnotation>
-        chooseModifier{this, "Choose Modifier", _("Choose Selection Modifier"),
-                       ChooseModifier::Alt};);
+);
 
 } // namespace fcitx
 #endif

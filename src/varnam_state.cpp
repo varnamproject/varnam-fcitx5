@@ -106,20 +106,14 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
     return;
   }
   // handle candidate selection through modifier + index key
-  if (states.test(engine_->getSelectionModifer())) {
+  if (!buffer_.empty() && key.isDigit()) {
     if (auto candidateList = ic_->inputPanel().candidateList();
         candidateList && candidateList->size()) {
-      auto idx = keyListIndexWithState(key, selectionKeys,
-                                       engine_->getSelectionModifer());
+      auto idx = key.keyListIndex(selectionKeys);
       if (idx >= 0 && idx < candidateList->size()) {
         selectCandidate(idx);
-        keyEvent.filterAndAccept();
-        return;
       }
-    }
-    if (engine_->getSelectionModifer() != KeyState::Ctrl) {
-      keyEvent.filter();
-      reset();
+      keyEvent.filterAndAccept();
       return;
     }
   }
@@ -136,7 +130,8 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
 #ifdef DEBUG_MODE
       VARNAM_INFO() << "unlearn word:" << preedit_.toString();
 #endif
-      std::string wordToUnlearn(preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
+      std::string wordToUnlearn(
+          preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
       std::thread unlearnThread(varnam_unlearn_word, engine_->getVarnamHandle(),
                                 std::move(wordToUnlearn));
       unlearnThread.detach();
@@ -399,7 +394,8 @@ void VarnamState::commitPreedit(const FcitxKeySym &key) {
 #ifdef DEBUG_MODE
       VARNAM_INFO() << "learn word:" << preedit_.toString();
 #endif
-      std::string wordToLearn(preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
+      std::string wordToLearn(
+          preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
       std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
                               std::move(wordToLearn), 0);
       learnThread.detach();
@@ -426,7 +422,7 @@ void VarnamState::updateUI() {
     ic_->updatePreedit();
     ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
     return;
-  }  
+  }
   if (result_ == nullptr) {
     return;
   }

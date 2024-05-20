@@ -23,7 +23,7 @@ elif (fs.exists('/usr/lib/cmake/Fcitx5Utils/Fcitx5CompilerSettings.cmake'))
   lib_dir = '/usr/lib'
 elif (fs.exists('/usr/lib64/cmake/Fcitx5Utils/Fcitx5CompilerSettings.cmake'))
   # Fedora
-  lib_dir = '/usr/lib'
+  lib_dir = '/usr/lib64'
 else
   lib_dir = get_option('libdir')
 endif
