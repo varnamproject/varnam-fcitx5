@@ -33,8 +33,8 @@ VarnamState::~VarnamState() {
 std::string VarnamState::bufferToString() {
   std::string str;
   std::stringstream strstream;
-  for (auto c : buffer_) {
-    strstream << c;
+  for (auto ch : buffer_) {
+    strstream << ch;
   }
   str.assign(strstream.str());
   return str;
@@ -75,37 +75,14 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
                 << keyEvent.key().toString(KeyStringFormat::Localized);
 #endif
   auto key = keyEvent.key();
-  auto states = keyEvent.rawKey().states() &
-                KeyStates{KeyState::Mod1, KeyState::CapsLock, KeyState::Shift,
-                          KeyState::Ctrl, KeyState::Super};
-  if (states.test(KeyState::Super)) {
-    states |= KeyState::Super2;
-  }
-  // filter control key event
-  if (keyEvent.rawKey().check(FcitxKey_Control_L) ||
-      keyEvent.rawKey().check(FcitxKey_Control_R)) {
+
+  // filter modififer keys
+  if (key.checkKeyList(keyListToFilter)) {
     keyEvent.filter();
     return;
   }
-  // filter shift key event
-  if (keyEvent.rawKey().check(FcitxKey_Shift_L) ||
-      keyEvent.rawKey().check(FcitxKey_Shift_R)) {
-    keyEvent.filter();
-    return;
-  }
-  // filter alt key event
-  if (keyEvent.rawKey().check(FcitxKey_Alt_L) ||
-      keyEvent.rawKey().check(FcitxKey_Alt_R)) {
-    keyEvent.filter();
-    return;
-  }
-  // filter super key event
-  if (keyEvent.rawKey().check(FcitxKey_Super_L) ||
-      keyEvent.rawKey().check(FcitxKey_Super_R)) {
-    keyEvent.filter();
-    return;
-  }
-  // handle candidate selection through modifier + index key
+
+  // handle candidate selection through index key
   if (!buffer_.empty() && key.isDigit()) {
     if (auto candidateList = ic_->inputPanel().candidateList();
         candidateList && candidateList->size()) {
@@ -117,12 +94,13 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       return;
     }
   }
-  if (states.test(KeyState::Ctrl)) {
+
+  if (key.states().test(KeyState::Ctrl)) {
     if (buffer_.empty()) {
       keyEvent.filter();
       return;
     }
-    if (keyEvent.rawKey().sym() == FcitxKey_Delete) {
+    if (key.sym() == FcitxKey_Delete) {
       if (preedit_.empty()) {
         keyEvent.filter();
         return;
@@ -162,14 +140,15 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
     return;
   }
 
-  switch (keyEvent.rawKey().sym()) {
+  switch (key.sym()) {
   case FcitxKey_space:
   case FcitxKey_Tab:
   case FcitxKey_Return:
-    cursor = 0;
-    bufferPos = 0;
-    utfCharPos = 0;
-    commitPreedit(keyEvent.rawKey().sym());
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
+    commitPreedit(key.sym());
     updateUI();
     keyEvent.filterAndAccept();
     return;
@@ -184,17 +163,15 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       return;
     }
     if (cursor > 0) {
-      cursor -= getNumOfUTFCharUnits(u32_preedit[utfCharPos]);
-      if (cursor < 0) {
-        cursor = 0;
+      unsigned int offset = getNumOfUTFCharUnits(u32_preedit[utfCharPos]);
+      if (cursor >= offset) {
+        cursor -= offset;
       }
-      --bufferPos;
-      if (bufferPos < 0) {
-        bufferPos = 0;
+      if (bufferPos > 0) {
+        --bufferPos;
       }
-      --utfCharPos;
-      if (utfCharPos < 0) {
-        utfCharPos = 0;
+      if (utfCharPos > 0) {
+        --utfCharPos;
       }
 #ifdef DEBUG_MODE
       VARNAM_INFO() << "[left] cursor at:" << cursor
@@ -210,10 +187,10 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       keyEvent.filter();
       return;
     }
-    if (bufferPos < buffer_.size()) {
+    if (bufferPos < (buffer_.size() - 1)) {
       ++bufferPos;
     }
-    if (utfCharPos < u32_preedit.size()) {
+    if (utfCharPos < (u32_preedit.size() - 1)) {
       ++utfCharPos;
     }
     if (cursor < preedit_.textLength()) {
@@ -237,9 +214,6 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       keyEvent.filter();
       return;
     }
-    if (cursor > 0) {
-      --cursor;
-    }
     // [TODO] use cursor position to remove elements
     buffer_.pop_back();
     getVarnamResult();
@@ -247,23 +221,13 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
     keyEvent.filterAndAccept();
     return;
   case FcitxKey_Delete:
-    if (preedit_.empty()) {
-      keyEvent.filter();
-      return;
-    }
-    // [TODO]
-    if (ic_->surroundingText().selectedText().length() > 0) {
-      ic_->deleteSurroundingText(
-          -ic_->surroundingText().cursor(),
-          ic_->surroundingText().selectedText().length());
-      ic_->updateSurroundingText();
-      keyEvent.filterAndAccept();
-      return;
-    }
+    keyEvent.filter();
     return;
   case FcitxKey_Home:
+    keyEvent.filter();
     return;
   case FcitxKey_End:
+    keyEvent.filter();
     return;
   default:
     break;
@@ -313,7 +277,7 @@ void VarnamState::setLookupTable() {
   candidates_p->setPageSize(engine_->getConfig()->pageSize.value());
   int count = varray_length(result_);
   for (int i = 0; i < count; i++) {
-    vword *word = (vword *)varray_get(result_, i);
+    vword *word = static_cast<vword *>(varray_get(result_, i));
     candidates_p->append<VarnamCandidateWord>(engine_, word->text, i);
   }
   std::string userInput = bufferToString();
@@ -374,33 +338,19 @@ void VarnamState::selectCandidate(int index) {
 
 void VarnamState::commitPreedit(const FcitxKeySym &key) {
   std::string stringToCommit;
-  if (buffer_.empty()) {
-    switch (key) {
-    case FcitxKey_space:
-      break;
-    case FcitxKey_Tab:
-      stringToCommit = '\t';
-      break;
-    case FcitxKey_Return:
-      stringToCommit = '\n';
-      break;
-    default:
-      return;
-    }
-  } else {
-    stringToCommit.assign(preedit_.toStringForCommit());
-    if (!stringToCommit.empty() &&
-        engine_->getConfig()->shouldLearnWords.value()) {
+  stringToCommit.assign(preedit_.toStringForCommit());
+  if (!stringToCommit.empty() &&
+      engine_->getConfig()->shouldLearnWords.value()) {
 #ifdef DEBUG_MODE
-      VARNAM_INFO() << "learn word:" << preedit_.toString();
+    VARNAM_INFO() << "learn word:" << preedit_.toString();
 #endif
-      std::string wordToLearn(
-          preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
-      std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
-                              std::move(wordToLearn), 0);
-      learnThread.detach();
-    }
+    std::string wordToLearn(
+        preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
+    std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
+                            std::move(wordToLearn), 0);
+    learnThread.detach();
   }
+
   if (isWordBreak(key)) {
     stringToCommit = stringutils::concat(stringToCommit, getWordBreakChar(key));
   }
@@ -409,10 +359,7 @@ void VarnamState::commitPreedit(const FcitxKeySym &key) {
                 << getWordBreakChar(key);
 #endif
   ic_->commitString(stringToCommit);
-  buffer_.clear();
-  preedit_.clear();
-  bufferPos = 0;
-  cursor = 0;
+  reset();
 }
 
 void VarnamState::updateUI() {
@@ -430,6 +377,9 @@ void VarnamState::updateUI() {
     return;
   }
   first_res = static_cast<vword *>(varray_get(result_, 0));
+  if (first_res == nullptr) {
+    return;
+  }
   std::string preedit_res(first_res->text);
   if (preedit_res.empty()) {
     return;

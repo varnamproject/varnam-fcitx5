@@ -4,11 +4,8 @@
 #include "varnam_candidate.h"
 
 #include <codecvt>
-#include <cstddef>
-#include <fcitx/event.h>
 #include <fcitx/inputcontext.h>
 #include <fcitx/text.h>
-#include <locale>
 
 extern "C" {
 #include <libgovarnam/libgovarnam.h>
@@ -22,9 +19,9 @@ class VarnamState : public InputContextProperty {
 
 private:
   // Private Variables
-  int cursor;
-  int bufferPos;
-  int utfCharPos;
+  unsigned int cursor;
+  unsigned int bufferPos;
+  unsigned int utfCharPos;
 
   InputContext *ic_;
   VarnamEngine *engine_;

@@ -1,5 +1,4 @@
 #include "varnam_utils.h"
-#include <thread>
 
 extern "C" {
 #include <libgovarnam/libgovarnam.h>
@@ -84,20 +83,21 @@ int getNumOfUTFCharUnits(char32_t code_point) {
     return 4;
   } else {
     // Invalid Unicode code point
-    return -1;
+    return 0;
   }
 }
 
-void varnam_learn_word(int varnam_handle_id, std::string word_, int weight) {
-  char *word = (char *)word_.c_str();
+void varnam_learn_word(int varnam_handle_id, const std::string &word_,
+                       int weight) {
+  char *word = const_cast<char *>(word_.c_str());
   int rv = varnam_learn(varnam_handle_id, word, weight);
   if (rv != VARNAM_SUCCESS) {
     VARNAM_WARN() << "Failed to learn word:" << word;
   }
 }
 
-void varnam_unlearn_word(int varnam_handle_id, std::string word_) {
-  char *word = (char *)word_.c_str();
+void varnam_unlearn_word(int varnam_handle_id, const std::string &word_) {
+  char *word = const_cast<char *>(word_.c_str());
   int rv = varnam_unlearn(varnam_handle_id, word);
   if (rv != VARNAM_SUCCESS) {
     VARNAM_WARN() << "Failed to unlearn word:" << word;

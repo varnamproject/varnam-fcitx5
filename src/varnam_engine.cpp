@@ -2,11 +2,8 @@
 #include "varnam_state.h"
 #include "varnam_utils.h"
 
-#include <algorithm>
-#include <cstring>
 #include <fcitx-config/iniparser.h>
 #include <fcitx/inputpanel.h>
-#include <vector>
 
 extern "C" {
 #include <libgovarnam/libgovarnam.h>
@@ -36,13 +33,13 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
 #ifdef DEBUG_MODE
   VARNAM_INFO() << "activate scheme:" << entry.uniqueName();
 #endif
-
-  char *schemeName = (char *)entry.uniqueName().c_str();
+  char *schemeName = const_cast<char *>(entry.uniqueName().c_str());
   int rv = varnam_init_from_id(schemeName, &varnam_handle);
   if (rv != VARNAM_SUCCESS) {
     VARNAM_WARN() << "Failed to initialize Varnam";
     throw std::runtime_error("failed to initialize varnam");
   }
+  
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_MATCH_EXACT,
                 config_.strictlyFollowScheme.value());
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_SUGGESTIONS_LIMIT,

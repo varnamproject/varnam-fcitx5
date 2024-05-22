@@ -27,6 +27,11 @@ static KeyList selectionKeys = {
     Key{FcitxKey_9}, Key{FcitxKey_0},
 };
 
+static KeyList keyListToFilter = {
+    Key{FcitxKey_Shift_L},   Key{FcitxKey_Shift_R}, Key{FcitxKey_Control_L},
+    Key{FcitxKey_Control_R}, Key{FcitxKey_Alt_L},   Key{FcitxKey_Alt_R},
+    Key{FcitxKey_Super_L},   Key{FcitxKey_Super_R}};
+
 // check if the input is a word break character
 bool isWordBreak(FcitxKeySym keyVal, bool inscriptMode = false);
 
@@ -38,10 +43,11 @@ const std::string getWordBreakChar(FcitxKeySym keyVal,
 int getNumOfUTFCharUnits(char32_t code_point);
 
 // varnam learn function, to run on a separate thread
-void varnam_learn_word(int varnam_handle_id, std::string word_, int weight);
+void varnam_learn_word(int varnam_handle_id, const std::string &word_,
+                       int weight);
 
 // varnam unlearn function, to run on a separate thread
-void varnam_unlearn_word(int varnam_handle_id, std::string word_);
+void varnam_unlearn_word(int varnam_handle_id, const std::string &word_);
 
 // check the current key and states against a key list and return the index
 template <typename Container>
