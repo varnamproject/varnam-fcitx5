@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="addon">
+  <id>com.varnamproject.Fcitx5.Addon.varnamfcitx</id>
+  <extends>org.fcitx.Fcitx5</extends>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>Varnam Fcitx5</name>
+  <summary>Varnam Engine for Fcitx5</summary>
+  <developer id="com.varnamproject">
+    <name>The Varnam Project</name>
+  </developer>
+  <url type="homepage">https://varnamproject.com/</url>
+  <url type="bugtracker">https://github.com/varnamproject/varnam-fcitx5/issues</url>
+  <url type="vcs-browser">https://github.com/varnamproject/varnam-fcitx5</url>
+  <project_group>Fcitx</project_group>
+  <releases>
+    <release version="0.0.1" date="2024-07-07"/>
+  </releases>
+</component>

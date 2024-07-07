@@ -3,7 +3,6 @@
 
 #include "varnam_candidate.h"
 
-#include <codecvt>
 #include <fcitx/inputcontext.h>
 #include <fcitx/text.h>
 
@@ -20,14 +19,12 @@ class VarnamState : public InputContextProperty {
 private:
   // Private Variables
   unsigned int cursor;
-  unsigned int bufferPos;
-  unsigned int utfCharPos;
+  char candidateSelected;
+  bool lastTypedCharIsDigit;
 
   InputContext *ic_;
   VarnamEngine *engine_;
   Text preedit_;
-  std::u32string u32_preedit;
-  std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> utf8_converter;
 
   std::vector<char> buffer_;
   varray *result_;
@@ -51,8 +48,8 @@ public:
   // Handle KeyEvents
   void processKeyEvent(KeyEvent &);
 
-  // Commit Preedit to text
-  void commitPreedit(const FcitxKeySym &key = FcitxKey_None);
+  // Commit Selected Candidate to text
+  void commitText(const FcitxKeySym &key = FcitxKey_None);
 
   // Generate Candidate List/Lookup tables
   void setLookupTable();
@@ -71,4 +68,4 @@ public:
 };
 
 } // namespace fcitx
-#endif
+#endif // end of _FCITX5_VARNAM_STATE_H

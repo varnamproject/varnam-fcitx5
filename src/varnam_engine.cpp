@@ -4,6 +4,7 @@
 
 #include <fcitx-config/iniparser.h>
 #include <fcitx/inputpanel.h>
+#include <libgovarnam/c-shared.h>
 
 extern "C" {
 #include <libgovarnam/libgovarnam.h>
@@ -14,7 +15,6 @@ namespace fcitx {
 VarnamEngine::VarnamEngine(Instance *instance)
     : instance_(instance),
       factory_([this](InputContext &ic) { return new VarnamState(this, ic); }) {
-  reloadConfig();
   instance->inputContextManager().registerProperty("varnamState", &factory_);
 }
 
@@ -30,6 +30,8 @@ VarnamEngine::~VarnamEngine() {
 
 void VarnamEngine::activate(const InputMethodEntry &entry,
                             InputContextEvent &contextEvent) {
+  FCITX_UNUSED(contextEvent);
+  reloadConfig();
 #ifdef DEBUG_MODE
   VARNAM_INFO() << "activate scheme:" << entry.uniqueName();
 #endif
@@ -39,7 +41,7 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
     VARNAM_WARN() << "Failed to initialize Varnam";
     throw std::runtime_error("failed to initialize varnam");
   }
-  
+
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_MATCH_EXACT,
                 config_.strictlyFollowScheme.value());
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_SUGGESTIONS_LIMIT,
@@ -59,7 +61,7 @@ void VarnamEngine::deactivate(const InputMethodEntry &entry,
   if (event.type() == EventType::InputContextSwitchInputMethod) {
     auto ic = event.inputContext();
     auto state = ic->propertyFor(&factory_);
-    state->commitPreedit();
+    state->commitText();
     state->updateUI();
   }
   reset(entry, event);
@@ -117,11 +119,9 @@ void VarnamEngine::reset(const InputMethodEntry &entry,
                          InputContextEvent &event) {
   FCITX_UNUSED(entry);
   auto ic = event.inputContext();
-  auto state = event.inputContext()->propertyFor(&factory_);
+  auto state = ic->propertyFor(&factory_);
   state->reset();
-  ic->inputPanel().reset();
-  ic->updatePreedit();
-  ic->updateUserInterface(UserInterfaceComponent::InputPanel);
+  state->updateUI();
 }
 
 void VarnamEngine::setConfig(const RawConfig &config) {

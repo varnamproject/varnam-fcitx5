@@ -1,5 +1,4 @@
 #include "varnam_candidate.h"
-#include "varnam_utils.h"
 #include "varnam_config.h"
 #include "varnam_state.h"
 
@@ -20,12 +19,15 @@ VarnamCandidateList::VarnamCandidateList(VarnamEngine *engine, InputContext *ic)
     : engine_(engine), ic_(ic) {
   const VarnamEngineConfig *config =
       static_cast<const VarnamEngineConfig *>(engine_->getConfig());
+  CandidateLayoutHint layout;
   if (!config) {
     VARNAM_WARN() << "Invalid configuration";
-    throw std::runtime_error("invalid config");
+    layout = CandidateLayoutHint::Vertical;
+  } else {
+    layout = config->candidateLayout.value();
   }
   setPageable(this);
-  setLayoutHint(config->candidateLayout.value());
+  setLayoutHint(layout);
 }
 
 void VarnamCandidateList::prev() {
@@ -55,8 +57,9 @@ void VarnamCandidateList::prevCandidate() {
   if (index >= pageSize() && (currentPage() > 0)) {
     setPage(currentPage());
   }
-  state->selectCandidate(cursorIndex());
   setGlobalCursorIndex(index);
+  state->selectCandidate(cursorIndex());
+  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 void VarnamCandidateList::nextCandidate() {
@@ -66,8 +69,9 @@ void VarnamCandidateList::nextCandidate() {
   if (index >= pageSize() && (currentPage() < totalPages())) {
     setPage(currentPage());
   }
-  state->selectCandidate(cursorIndex());
   setGlobalCursorIndex(index);
+  state->selectCandidate(cursorIndex());
+  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 } // namespace fcitx

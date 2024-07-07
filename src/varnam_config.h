@@ -29,14 +29,13 @@ FCITX_CONFIGURATION(
                                        IntConstrain(3, 10)};
 
     // Enable Learning Words on commit
-    Option<bool> shouldLearnWords{this, "Learn Words",
-                                  _("Enable Learning New Words"), true};
-
+    Option<bool> shouldLearnWords{this, "Learn Words", _("Learn New Words"),
+                                  true};
     // Strictly Follow Schema
     Option<bool> strictlyFollowScheme{
         this, "Strictly Follow Scheme",
         _("Strictly Follow Scheme For Dictionary Results"), false};
-
+   
     // Dictionary Suggestions Limit
     Option<int, IntConstrain> dictionarySuggestionsLimit{
         this, "Dictionary Suggestions Limit", _("Dictionary Suggestions Limit"),
@@ -57,7 +56,7 @@ FCITX_CONFIGURATION(
         this,
         "PrevCandidate",
         _("Previous Candidate"),
-        {Key("Alt+Up")},
+        {Key("Up")},
         KeyListConstrain(KeyConstrainFlag::AllowModifierLess)};
 
     // Next Candidate Shortcut
@@ -65,7 +64,7 @@ FCITX_CONFIGURATION(
         this,
         "NextCandidate",
         _("Next Candidate"),
-        {Key("Alt+Down")},
+        {Key("Down")},
         KeyListConstrain(KeyConstrainFlag::AllowModifierLess)};
 
     // Previous Page
@@ -73,17 +72,16 @@ FCITX_CONFIGURATION(
         this,
         "PrevPage",
         _("Previous Page"),
-        {Key("Alt+Left")},
-        KeyListConstrain(KeyConstrainFlag::AllowModifierLess)};
+        {Key("Alt+Up")},
+        KeyListConstrain(KeyConstrainFlag::AllowModifierOnly)};
 
     // Next Page
     KeyListOption nextPage{
         this,
         "NextPage",
         _("Next Page"),
-        {Key("Alt+Right")},
-        KeyListConstrain(KeyConstrainFlag::AllowModifierLess)};
-);
+        {Key("Alt+Down")},
+        KeyListConstrain(KeyConstrainFlag::AllowModifierOnly)};);
 
 } // namespace fcitx
 #endif

@@ -3,13 +3,15 @@
 #include "varnam_engine.h"
 #include "varnam_utils.h"
 
-#include <algorithm>
+#include <fcitx-utils/capabilityflags.h>
 #include <fcitx-utils/key.h>
+#include <fcitx-utils/keysymgen.h>
 #include <fcitx-utils/stringutils.h>
 #include <fcitx-utils/utf8.h>
 #include <fcitx/inputpanel.h>
 
 #include <iterator>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -17,11 +19,11 @@
 namespace fcitx {
 
 VarnamState::VarnamState(VarnamEngine *engine, InputContext &ic)
-    : engine_(engine), ic_(&ic) {
+    : ic_(&ic), engine_(engine) {
   result_ = nullptr;
-  cursor = 0;
-  bufferPos = 0;
-  utfCharPos = 0;
+  cursor = std::numeric_limits<unsigned int>::max();
+  candidateSelected = 0;
+  lastTypedCharIsDigit = false;
 }
 
 VarnamState::~VarnamState() {
@@ -41,8 +43,8 @@ std::string VarnamState::bufferToString() {
 }
 
 void VarnamState::updatePreeditCursor() {
-  if (preedit_.textLength() < cursor) {
-    return;
+  if (cursor > preedit_.textLength()) {
+    cursor = preedit_.textLength();
   }
   preedit_.setCursor(cursor);
   if (ic_->capabilityFlags().test(CapabilityFlag::Preedit)) {
@@ -83,16 +85,13 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
   }
 
   // handle candidate selection through index key
-  if (!buffer_.empty() && key.isDigit()) {
-    if (auto candidateList = ic_->inputPanel().candidateList();
-        candidateList && candidateList->size()) {
-      auto idx = key.keyListIndex(selectionKeys);
-      if (idx >= 0 && idx < candidateList->size()) {
-        selectCandidate(idx);
-      }
-      keyEvent.filterAndAccept();
-      return;
-    }
+  if (!buffer_.empty() && key.isDigit() && !lastTypedCharIsDigit) {
+    auto idx = key.keyListIndex(selectionKeys);
+    selectCandidate(idx);
+    commitText(key.sym());
+    updateUI();
+    keyEvent.filterAndAccept();
+    return;
   }
 
   if (key.states().test(KeyState::Ctrl)) {
@@ -101,18 +100,23 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       return;
     }
     if (key.sym() == FcitxKey_Delete) {
-      if (preedit_.empty()) {
+      auto candidates = ic_->inputPanel().candidateList();
+      std::string wordToUnlearn(
+          candidates->candidate(candidateSelected)
+              .text()
+              .toStringForCommit()); // TODO try unique_ptr<char[]>
+      if (wordToUnlearn.empty()) {
         keyEvent.filter();
         return;
       }
 #ifdef DEBUG_MODE
-      VARNAM_INFO() << "unlearn word:" << preedit_.toString();
+      VARNAM_INFO() << "unlearn word:" << wordToUnlearn;
 #endif
-      std::string wordToUnlearn(
-          preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
       std::thread unlearnThread(varnam_unlearn_word, engine_->getVarnamHandle(),
                                 std::move(wordToUnlearn));
       unlearnThread.detach();
+      reset();
+      updateUI();
       keyEvent.filterAndAccept();
       return;
     }
@@ -120,27 +124,47 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
     return;
   }
   if (key.checkKeyList(engine_->getConfig()->nextCandidate.value())) {
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
     updateLookupTable(NEXT_CANDIDATE);
     keyEvent.filterAndAccept();
     return;
   }
   if (key.checkKeyList(engine_->getConfig()->prevCandidate.value())) {
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
     updateLookupTable(PREV_CANDIDATE);
     keyEvent.filterAndAccept();
     return;
   }
   if (key.checkKeyList(engine_->getConfig()->nextPage.value())) {
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
     updateLookupTable(NEXT_PAGE);
     keyEvent.filterAndAccept();
     return;
   }
   if (key.checkKeyList(engine_->getConfig()->prevPage.value())) {
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
     updateLookupTable(PREV_PAGE);
     keyEvent.filterAndAccept();
     return;
   }
 
+  auto iterator = buffer_.begin();
+  iterator += cursor;
+
   switch (key.sym()) {
+  case FcitxKey_Escape:
   case FcitxKey_space:
   case FcitxKey_Tab:
   case FcitxKey_Return:
@@ -148,59 +172,28 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       keyEvent.filter();
       return;
     }
-    commitPreedit(key.sym());
+    commitText(key.sym());
     updateUI();
     keyEvent.filterAndAccept();
     return;
-  case FcitxKey_Escape:
-    commitPreedit();
-    updateUI();
-    keyEvent.filterAndAccept();
-    return;
-  case FcitxKey_Left: // [TODO] move cursor left
+  case FcitxKey_Left:
     if (preedit_.empty()) {
       keyEvent.filter();
       return;
     }
     if (cursor > 0) {
-      unsigned int offset = getNumOfUTFCharUnits(u32_preedit[utfCharPos]);
-      if (cursor >= offset) {
-        cursor -= offset;
-      }
-      if (bufferPos > 0) {
-        --bufferPos;
-      }
-      if (utfCharPos > 0) {
-        --utfCharPos;
-      }
-#ifdef DEBUG_MODE
-      VARNAM_INFO() << "[left] cursor at:" << cursor
-                    << " buffer pos:" << bufferPos
-                    << " preedit cursor: " << utfCharPos;
-#endif
+      --cursor;
     }
     updatePreeditCursor();
     keyEvent.filterAndAccept();
     return;
-  case FcitxKey_Right: //[TODO] move cursor right
+  case FcitxKey_Right:
     if (preedit_.empty()) {
       keyEvent.filter();
       return;
     }
-    if (bufferPos < (buffer_.size() - 1)) {
-      ++bufferPos;
-    }
-    if (utfCharPos < (u32_preedit.size() - 1)) {
-      ++utfCharPos;
-    }
-    if (cursor < preedit_.textLength()) {
-
-      cursor += getNumOfUTFCharUnits(u32_preedit[utfCharPos]);
-#ifdef DEBUG_MODE
-      VARNAM_INFO() << "[right] cursor at:" << cursor
-                    << " buffer pos:" << bufferPos
-                    << " preedit cursor: " << utfCharPos;
-#endif
+    if (cursor < (buffer_.size())) {
+      ++cursor;
     }
     updatePreeditCursor();
     keyEvent.filterAndAccept();
@@ -214,28 +207,59 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
       keyEvent.filter();
       return;
     }
-    // [TODO] use cursor position to remove elements
-    buffer_.pop_back();
+    if (cursor > 0) {
+      buffer_.erase(--iterator);
+      --cursor;
+    }
     getVarnamResult();
     updateUI();
     keyEvent.filterAndAccept();
     return;
   case FcitxKey_Delete:
-    keyEvent.filter();
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
+    if (cursor < buffer_.size()) {
+      buffer_.erase(iterator);
+    }
+    getVarnamResult();
+    updateUI();
+    keyEvent.filterAndAccept();
     return;
   case FcitxKey_Home:
-    keyEvent.filter();
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
+    cursor = 0;
+    updatePreeditCursor();
+    keyEvent.filterAndAccept();
     return;
   case FcitxKey_End:
-    keyEvent.filter();
+    if (buffer_.empty()) {
+      keyEvent.filter();
+      return;
+    }
+    cursor = preedit_.textLength();
+    updatePreeditCursor();
+    keyEvent.filterAndAccept();
     return;
   default:
     break;
   }
-  if (result_) {
-    varray_clear(result_);
+
+  if (key.isDigit()) {
+    lastTypedCharIsDigit = true;
   } else {
-    result_ = varray_init();
+    lastTypedCharIsDigit = false;
+  }
+
+  if (isWordBreak(keyEvent.key().sym())) {
+    commitText(keyEvent.key().sym());
+    updateUI();
+    keyEvent.filterAndAccept();
+    return;
   }
 
   if (key.sym() > 0x80) {
@@ -246,22 +270,23 @@ void VarnamState::processKeyEvent(KeyEvent &keyEvent) {
   unsigned char input =
       *(keyEvent.key().toString(KeyStringFormat::Localized).c_str());
 #ifdef DEBUG_MODE
-  VARNAM_INFO() << "cursor at:" << cursor << " buffer pos:" << bufferPos
-                << " buf size:" << buffer_.size();
+  VARNAM_INFO() << "cursor at:" << cursor;
 #endif
-  auto iterator = buffer_.begin();
-  iterator += bufferPos;
-  if (bufferPos >= buffer_.size()) {
+  if (cursor >= buffer_.size()) {
     buffer_.push_back(input);
-    ++bufferPos;
+    cursor = buffer_.size();
   } else {
     buffer_.insert(iterator, input);
-    ++bufferPos;
+    ++cursor;
   }
+
+  if (result_) {
+    varray_clear(result_);
+  } else {
+    result_ = varray_init();
+  }
+
   getVarnamResult();
-  if (isWordBreak(keyEvent.key().sym())) {
-    commitPreedit(keyEvent.key().sym());
-  }
   updateUI();
   keyEvent.filterAndAccept();
 }
@@ -270,21 +295,33 @@ void VarnamState::setLookupTable() {
   if (!result_) {
     return;
   }
-  auto candidates_p = std::make_unique<VarnamCandidateList>(engine_, ic_);
-  candidates_p->setSelectionKey(selectionKeys);
-  candidates_p->setCursorPositionAfterPaging(
+  auto candidates = std::make_unique<VarnamCandidateList>(engine_, ic_);
+  candidates->setSelectionKey(selectionKeys);
+  candidates->setCursorPositionAfterPaging(
       CursorPositionAfterPaging::ResetToFirst);
-  candidates_p->setPageSize(engine_->getConfig()->pageSize.value());
+  candidates->setPageSize(engine_->getConfig()->pageSize.value());
+
   int count = varray_length(result_);
+  char preeditAppended = 0;
   for (int i = 0; i < count; i++) {
+    if ((candidates->pageSize() == 10) &&
+        ((i + (preeditAppended ? (1 + preeditAppended) : 1)) % 10 == 0)) {
+      // TODO ;}
+      candidates->append<VarnamCandidateWord>(engine_,
+                                              preedit_.toString().c_str(), i);
+      ++preeditAppended;
+    }
     vword *word = static_cast<vword *>(varray_get(result_, i));
-    candidates_p->append<VarnamCandidateWord>(engine_, word->text, i);
+    candidates->append<VarnamCandidateWord>(engine_, word->text,
+                                            preeditAppended ? i + 1 : i);
   }
-  std::string userInput = bufferToString();
-  candidates_p->append<VarnamCandidateWord>(engine_, userInput.c_str(), count);
+  if (!preeditAppended) {
+    candidates->append<VarnamCandidateWord>(
+        engine_, preedit_.toString().c_str(), ++count);
+  }
   if (count) {
-    candidates_p->setGlobalCursorIndex(0);
-    ic_->inputPanel().setCandidateList(std::move(candidates_p));
+    candidates->setGlobalCursorIndex(0);
+    ic_->inputPanel().setCandidateList(std::move(candidates));
   }
 }
 
@@ -320,35 +357,35 @@ void VarnamState::selectCandidate(int index) {
   if (!candidateList_ || candidateList_->size() <= index) {
     return;
   }
-  const Text *candidate_ = &candidateList_->candidate(index).text();
-  if (candidate_ == nullptr || candidate_->empty()) {
-    return;
-  }
-  preedit_.clear();
-  preedit_.append(candidate_->toString(), TextFormatFlag::HighLight);
-  preedit_.setCursor(preedit_.textLength());
-  if (ic_->capabilityFlags().test(CapabilityFlag::Preedit)) {
-    ic_->inputPanel().setClientPreedit(preedit_);
+  if (index == 9) {
+    candidateSelected = 0;
   } else {
-    ic_->inputPanel().setPreedit(preedit_);
+    if (candidateList_->size() <= index) {
+      return;
+    }
+    candidateSelected = index;
   }
-  ic_->updatePreedit();
-  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
-void VarnamState::commitPreedit(const FcitxKeySym &key) {
+void VarnamState::commitText(const FcitxKeySym &key) {
+  auto candidates = ic_->inputPanel().candidateList();
   std::string stringToCommit;
-  stringToCommit.assign(preedit_.toStringForCommit());
-  if (!stringToCommit.empty() &&
-      engine_->getConfig()->shouldLearnWords.value()) {
-#ifdef DEBUG_MODE
-    VARNAM_INFO() << "learn word:" << preedit_.toString();
-#endif
-    std::string wordToLearn(
-        preedit_.toStringForCommit()); // [TODO] try unique_ptr<char[]>
-    std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
-                            std::move(wordToLearn), 0);
-    learnThread.detach();
+
+  if (key == FcitxKey_Escape || key == FcitxKey_0 || candidates == nullptr ||
+      candidates->size() <= 1 || result_ == nullptr ||
+      varray_is_empty(result_) || lastTypedCharIsDigit) {
+
+    stringToCommit.assign(preedit_.toStringForCommit());
+    candidateSelected = 0;
+  } else if ((candidates->cursorIndex() <= 0) && !candidateSelected) {
+    vword *first_result = static_cast<vword *>(varray_get(result_, 0));
+    if (first_result != nullptr) {
+      stringToCommit.assign(first_result->text);
+      candidateSelected = 1;
+    }
+  } else {
+    stringToCommit.assign(
+        candidates->candidate(candidateSelected).text().toStringForCommit());
   }
 
   if (isWordBreak(key)) {
@@ -359,11 +396,24 @@ void VarnamState::commitPreedit(const FcitxKeySym &key) {
                 << getWordBreakChar(key);
 #endif
   ic_->commitString(stringToCommit);
+
+  if (stringToCommit.empty() || lastTypedCharIsDigit ||
+      ic_->capabilityFlags().test(CapabilityFlag::PasswordOrSensitive) ||
+      !engine_->getConfig()->shouldLearnWords.value() || !candidateSelected) {
+    reset();
+    return;
+  }
+#ifdef DEBUG_MODE
+  VARNAM_INFO() << "learn word:" << stringToCommit;
+#endif
+  std::string wordToLearn(stringToCommit); // [TODO] try unique_ptr<char[]>
+  std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
+                          std::move(wordToLearn), 0);
+  learnThread.detach();
   reset();
 }
 
 void VarnamState::updateUI() {
-  vword *first_res = nullptr;
   ic_->inputPanel().reset();
   if (buffer_.empty()) {
     ic_->updatePreedit();
@@ -376,20 +426,12 @@ void VarnamState::updateUI() {
   if (varray_length(result_) == 0x00) {
     return;
   }
-  first_res = static_cast<vword *>(varray_get(result_, 0));
-  if (first_res == nullptr) {
-    return;
-  }
-  std::string preedit_res(first_res->text);
-  if (preedit_res.empty()) {
-    return;
-  }
-  u32_preedit.clear();
-  u32_preedit.assign(utf8_converter.from_bytes(preedit_res.c_str()));
-  cursor = preedit_res.length();
-  utfCharPos = u32_preedit.length() - 1;
+
   preedit_.clear();
-  preedit_.append(preedit_res, TextFormatFlag::HighLight);
+  preedit_.append(bufferToString(), TextFormatFlag::HighLight);
+  if (cursor > preedit_.textLength()) {
+    cursor = preedit_.textLength();
+  }
   preedit_.setCursor(cursor);
 
   if (ic_->capabilityFlags().test(CapabilityFlag::Preedit)) {
@@ -403,9 +445,9 @@ void VarnamState::updateUI() {
 }
 
 void VarnamState::reset() {
-  cursor = 0;
-  bufferPos = 0;
-  utfCharPos = 0;
+  cursor = std::numeric_limits<unsigned int>::max();
+  candidateSelected = 0;
+  lastTypedCharIsDigit = false;
   buffer_.clear();
   preedit_.clear();
   if (result_) {

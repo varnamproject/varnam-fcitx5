@@ -28,19 +28,27 @@ else
   lib_dir = get_option('libdir')
 endif
 
-if (fs.exists('/usr/local/share/fcitx5/inputmethod'))
-  data_dir = '/usr/local/share'
-elif (fs.exists('/usr/share/fcitx5/inputmethod'))
-  data_dir = '/usr/share/'
-else
-  data_dir = get_option('datadir')
-endif
+data_dir = get_option('datadir')
 
 if get_option('varnam_debug')
   add_global_arguments('-DDEBUG_MODE', language: 'cpp')
+endif
+
+config_data = configuration_data()
+if (get_option('version') == '')
+  config_data.set('version', meson.project_version())
+else
+  config_data.set('version', get_option('version'))
 endif
 
 # source
 subdir('src')
 # icons
 subdir('icons')
+
+# install AppStream Metadata file
+install_data(
+  'com.varnamproject.Fcitx5.Addon.varnamfcitx.metainfo.xml.in',
+  rename: 'com.varnamproject.Fcitx5.Addon.varnamfcitx.metainfo.xml',
+  install_dir: data_dir + '/metainfo',
+)
