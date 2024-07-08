@@ -35,10 +35,13 @@ if get_option('varnam_debug')
 endif
 
 config_data = configuration_data()
-if (get_option('version') == '')
+if (get_option('version') != '')
+  config_data.set('version', get_option('version'))
+elif (run_command('git', 'describe', check: false).stdout().strip() == '')
   config_data.set('version', meson.project_version())
 else
-  config_data.set('version', get_option('version'))
+  git_tag = run_command('git', 'describe', '--always', '--dirty', check: false).stdout().strip()
+  config_data.set('version', git_tag.strip('v'))
 endif
 
 # source
