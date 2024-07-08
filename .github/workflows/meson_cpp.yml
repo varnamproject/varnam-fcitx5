@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Fcitx5 dev packages
-        run: sudo apt install -y fcitx5-modules-dev
+        run: sudo apt install -y fcitx5-modules-dev libfcitx5core-dev
       - name: Build and install Varnam
         run: |
           cd ../
