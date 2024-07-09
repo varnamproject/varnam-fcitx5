@@ -5,11 +5,13 @@ on:
     paths:
       - "**.cpp"
       - "**.h"
+      - "**.build"
   pull_request:
     branches: [main]
     paths:
       - "**.cpp"
       - "**.h"
+      - "**.build"
 
 jobs:
   build:
@@ -17,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         meson_version: ["1.4.1"]
     steps:
       - name: Set up Go
@@ -29,7 +31,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Fcitx5 dev packages
-        run: sudo apt install -y fcitx5-modules-dev libfcitx5core-dev
+        run: sudo apt install -y fcitx5-modules-dev
       - name: Build and install Varnam
         run: |
           cd ../
