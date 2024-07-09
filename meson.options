@@ -1,1 +1,2 @@
 option('varnam_debug', type: 'boolean', value: false)
+option('version', type: 'string', value: '')

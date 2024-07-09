@@ -20,7 +20,12 @@ A wrapper to add Varnam Input Method Engine support in Fcitx5 Input Method.
 
 Install `fcitx5-modules-dev` if you're building it on a debian based distribution.
 
-## Build & Install
+## Installation
+
+### Build & Install
+
+> [!IMPORTANT] 
+> Please Uninstall the older version first, to avoid conflicts.
 
 ```bash
 git clone https://github.com/varnamproject/varnam-fcitx5.git
@@ -43,12 +48,17 @@ If meson version is less than `1.1` run the following command before `meson setu
 mv meson.options meson_options.txt
 ```
 
-## Uninstall
+
+### Uninstall
 ```
 cd buildir
 sudo ninja uninstall
 ```
+---
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/varnam-fcitx5.svg)](https://repology.org/project/varnam-fcitx5/versions)
+
+* Thank you [@mohammedbilalns](https://github.com/mohammedbilalns) for the Arch Linux Package([AUR](https://aur.archlinux.org/packages/varnam-fcitx5-git))
 ## Configuration
 
 Varnam Fcitx can be configured using `fcitx5-configtool`. Please refer the [official documentation](https://fcitx-im.org/wiki/Configtool_(Fcitx_5)).

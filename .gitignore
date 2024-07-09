@@ -6,7 +6,12 @@ builddir/
 *.o
 *.a
 
+**/varnamfcitx-addon.conf
 **/CMakeLists.txt
 **/CMakeCache.txt
 CMakeFiles/
 meson_options.txt
+
+compile_commands.json
+.cache/
+.vscode/

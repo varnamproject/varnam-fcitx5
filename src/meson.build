@@ -12,7 +12,6 @@ shared_library(
   dependencies: [fcitx5_core_dep, fcitx5_module_dep, varnam_dep],
   install: true,
   install_dir: lib_dir + '/fcitx5',
-  name_prefix: '',
 )
 
 # Input Method registration file
@@ -22,8 +21,9 @@ install_data(
 )
 
 # Addon config file
-install_data(
-  'varnamfcitx-addon.conf.in',
-  rename: 'varnamfcitx.conf',
+configure_file(
+  configuration: config_data,
+  input: 'varnamfcitx-addon.conf.in',
+  output: 'varnamfcitx.conf',
   install_dir: data_dir + '/fcitx5/addon',
 )
