@@ -2,7 +2,7 @@
 Name=Varnam
 Comment=Varnam Engine for Fcitx5
 Category=InputMethod
-Version=@version@
+Version=@PROJECT_VERSION@
 Library=libvarnamfcitx
 Type=SharedLibrary
 Configurable=True
