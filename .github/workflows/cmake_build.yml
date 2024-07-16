@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    name: Build and Test on ${{ matrix.os }} with Build Type v${{ matrix.build-type }}
+    name: Build and Test on ${{ matrix.os }} with Build Type ${{ matrix.build-type }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -35,6 +35,8 @@ jobs:
           cd govarnam
           make
           sudo make install
+      - name: Install Cmake
+        run: sudo apt install -y cmake extra-cmake-modules pkgconf
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Set reusable strings
