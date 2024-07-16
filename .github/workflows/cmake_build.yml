@@ -1,0 +1,57 @@
+name: CMake Build and Test
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**.cpp"
+      - "**.h"
+      - "**CMakeLists.txt"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**.cpp"
+      - "**.h"
+      - "**CMakeLists.txt"
+
+jobs:
+  build:
+    name: Build and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.16
+      - name: Install Fcitx5 dev packages
+        run: sudo apt install -y fcitx5-modules-dev
+      - name: Build and install Varnam
+        run: |
+          cd ../
+          git clone https://github.com/varnamproject/govarnam.git govarnam
+          cd govarnam
+          make
+          sudo make install
+      - name: Install Cmake
+        run: sudo apt install -y cmake extra-cmake-modules pkgconf
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+      - name: Configure Project
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }} 
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_INSTALL_PREFIX=/usr
+          -DVARNAM_DEBUG=ON
+          -S ${{ github.workspace }}
+      - name: Build
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Debug
+      - name: Test
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: ctest --build-config Debug

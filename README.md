@@ -13,7 +13,7 @@ A wrapper to add Varnam Input Method Engine support in Fcitx5 Input Method.
 
 ## Dependencies
 
-* [Meson](https://github.com/mesonbuild/meson)
+* [CMake](https://cmake.org/)
 * A c++ compiler that supports c++17 standard.
 * [Varnam](https://github.com/varnamproject/govarnam)
 * [Fcitx5](https://github.com/fcitx/fcitx5)
@@ -30,35 +30,47 @@ Install `fcitx5-modules-dev` if you're building it on a debian based distributio
 ```bash
 git clone https://github.com/varnamproject/varnam-fcitx5.git
 cd varnam-fcitx5
-meson setup builddir
-cd builddir
-meson compile
-sudo meson install
+cmake -B build/ -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -S .
+cmake --build build/ --config Release
+sudo cmake --install build/ --config Release
 ```
 
-To enable debug logs set `varnam_debug` to `true` by using the following command, before compiling the project.
+or
 
 ```bash
-meson configure -Dvarnam_debug=true
+git clone https://github.com/varnamproject/varnam-fcitx5.git
+cd varnam-fcitx5
+cmake -B build/ -DCMAKE_INSTALL_PREFIX=/usr
+cd build && make -j4
+sudo make install
 ```
+ CMake supports multiple build system generators including [Ninja](https://ninja-build.org/). Commands could change based on the generator you use.
+ 
 
-If meson version is less than `1.1` run the following command before `meson setup`.
+To enable debug logs, configure the project with `-DVARNAM_DEBUG=ON` option.
 
 ```bash
-mv meson.options meson_options.txt
+cmake -B build/ -DVARNAM_DEBUG=ON -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release
 ```
-
 
 ### Uninstall
+
 ```
-cd buildir
+cd build
+sudo make uninstall
+```
+or 
+
+```
+cd build
 sudo ninja uninstall
 ```
 ---
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/varnam-fcitx5.svg)](https://repology.org/project/varnam-fcitx5/versions)
 
-* Thank you [@mohammedbilalns](https://github.com/mohammedbilalns) for the Arch Linux Package([AUR](https://aur.archlinux.org/packages/varnam-fcitx5-git))
+* [AUR Package](https://aur.archlinux.org/packages/varnam-fcitx5-git) by [@mohammedbilalns](https://github.com/mohammedbilalns)
+* [Varnam Nix Flake](https://github.com/adtya/varnam-nix) by [@Adtya](https://github.com/adtya)
 ## Configuration
 
 Varnam Fcitx can be configured using `fcitx5-configtool`. Please refer the [official documentation](https://fcitx-im.org/wiki/Configtool_(Fcitx_5)).

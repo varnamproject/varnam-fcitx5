@@ -1,16 +1,17 @@
-
 build/
 builddir/
+**/Testing/
 
 *.so
 *.o
 *.a
 
 **/varnamfcitx-addon.conf
-**/CMakeLists.txt
 **/CMakeCache.txt
+**/meson.build
 CMakeFiles/
 meson_options.txt
+meson.options
 
 compile_commands.json
 .cache/
