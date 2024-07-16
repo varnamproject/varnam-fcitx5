@@ -1,4 +1,4 @@
 install_subdir(
   ['48x48'],
-  install_dir: data_dir + '/icons/hicolor',
+  install_dir:  get_option('datadir') + '/icons/hicolor',
 )
