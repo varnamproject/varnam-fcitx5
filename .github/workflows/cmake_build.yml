@@ -15,12 +15,11 @@ on:
 
 jobs:
   build:
-    name: Build and Test on ${{ matrix.os }} with Build Type ${{ matrix.build-type }}
+    name: Build and Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        build-type: [Release]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -47,12 +46,12 @@ jobs:
       - name: Configure Project
         run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }} 
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_INSTALL_PREFIX=/usr
           -DVARNAM_DEBUG=ON
           -S ${{ github.workspace }}
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Debug
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest --build-config ${{ matrix.build_type }}
+        run: ctest --build-config Debug
