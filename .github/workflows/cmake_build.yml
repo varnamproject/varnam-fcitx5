@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        build-type: [Debug]
+        build-type: [Release]
     steps:
       - name: Set up Go
         uses: actions/setup-go@v5
