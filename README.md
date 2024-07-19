@@ -9,16 +9,18 @@
 
 A wrapper to add Varnam Input Method Engine support in Fcitx5 Input Method.
 
-> The project is still a work in progress. Please report bugs by raising [issues](https://github.com/varnamproject/varnam-fcitx5/issues).
+> Please report bugs by raising [issues](https://github.com/varnamproject/varnam-fcitx5/issues), if you find any.
 
 ## Dependencies
 
-* [CMake](https://cmake.org/)
-* A c++ compiler that supports c++17 standard.
+* A C++ compiler that supports c++17 standard.
 * [Varnam](https://github.com/varnamproject/govarnam)
+* [Varnam Schemes](https://github.com/varnamproject/schemes/releases/)
 * [Fcitx5](https://github.com/fcitx/fcitx5)
-
-Install `fcitx5-modules-dev` if you're building it on a debian based distribution.
+* [CMake](https://cmake.org/) (build-dep)
+* fcitx5-modules-dev (build-dep on debian based distributions)
+* extra-cmake-modules (build-dep)
+* pkgconf (build-dep)
 
 ## Installation
 
@@ -44,7 +46,7 @@ cmake -B build/ -DCMAKE_INSTALL_PREFIX=/usr
 cd build && make -j4
 sudo make install
 ```
- CMake supports multiple build system generators including [Ninja](https://ninja-build.org/). Commands could change based on the generator you use.
+ > CMake supports multiple build system generators including [Ninja](https://ninja-build.org/). Commands could change based on the generator you use.
  
 
 To enable debug logs, configure the project with `-DVARNAM_DEBUG=ON` option.
@@ -70,7 +72,8 @@ sudo ninja uninstall
 [![Packaging status](https://repology.org/badge/vertical-allrepos/varnam-fcitx5.svg)](https://repology.org/project/varnam-fcitx5/versions)
 
 * [AUR Package](https://aur.archlinux.org/packages/varnam-fcitx5-git) by [@mohammedbilalns](https://github.com/mohammedbilalns)
-* [Varnam Nix Flake](https://github.com/adtya/varnam-nix) by [@Adtya](https://github.com/adtya)
+* [Varnam Nix Flake](https://github.com/adtya/varnam-nix) by [@adtya](https://github.com/adtya)
+
 ## Configuration
 
 Varnam Fcitx can be configured using `fcitx5-configtool`. Please refer the [official documentation](https://fcitx-im.org/wiki/Configtool_(Fcitx_5)).
