@@ -51,6 +51,9 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
                 config_.patternDictionarySuggestionsLimit.value());
   varnam_config(varnam_handle, VARNAM_CONFIG_SET_TOKENIZER_SUGGESTIONS_LIMIT,
                 config_.tokenizerSuggestionsLimit.value());
+  varnam_config(varnam_handle, VARNAM_CONFIG_USE_INDIC_DIGITS,
+                config_.enableIndicNumbers.value());
+
 }
 
 void VarnamEngine::deactivate(const InputMethodEntry &entry,

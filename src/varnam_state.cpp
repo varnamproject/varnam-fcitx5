@@ -370,11 +370,15 @@ void VarnamState::selectCandidate(int index) {
 void VarnamState::commitText(const FcitxKeySym &key) {
   auto candidates = ic_->inputPanel().candidateList();
   std::string stringToCommit;
+  bool isWordBreakKey = isWordBreak(key);
 
-  if (key == FcitxKey_Escape || key == FcitxKey_0 || candidates == nullptr ||
-      candidates->size() <= 1 || result_ == nullptr ||
-      varray_is_empty(result_) || lastTypedCharIsDigit) {
-
+if (key == FcitxKey_space) {
+   if (candidates && candidates->cursorIndex() >= 0) {
+      stringToCommit = candidates->candidate(candidates->cursorIndex()).text().toStringForCommit();
+  } else {
+      stringToCommit = preedit_.toStringForCommit();
+  }
+ } else if (key == FcitxKey_Escape || key == FcitxKey_0 || !candidates || candidates->size() <= 1 || !result_ || varray_is_empty(result_)) {
     stringToCommit.assign(preedit_.toStringForCommit());
     candidateSelected = 0;
   } else if ((candidates->cursorIndex() <= 0) && !candidateSelected) {
@@ -388,9 +392,16 @@ void VarnamState::commitText(const FcitxKeySym &key) {
         candidates->candidate(candidateSelected).text().toStringForCommit());
   }
 
-  if (isWordBreak(key)) {
-    stringToCommit = stringutils::concat(stringToCommit, getWordBreakChar(key));
-  }
+   if (isWordBreakKey) {
+     buffer_.clear(); // Clear buffer before processing the word break key
+     buffer_.push_back(getWordBreakChar(key)[0]); // Convert string to char
+     if (getVarnamResult() && result_ && varray_length(result_) > 0) {
+         vword *result_word = static_cast<vword *>(varray_get(result_, 0));
+          if (result_word) {
+             stringToCommit = stringutils::concat(stringToCommit, result_word->text);
+            }  
+        }
+    }
 #ifdef DEBUG_MODE
   VARNAM_INFO() << "string to commit:" << stringToCommit << " "
                 << getWordBreakChar(key);
@@ -403,12 +414,17 @@ void VarnamState::commitText(const FcitxKeySym &key) {
     reset();
     return;
   }
+    
 #ifdef DEBUG_MODE
   VARNAM_INFO() << "learn word:" << stringToCommit;
 #endif
   std::string wordToLearn(stringToCommit); // [TODO] try unique_ptr<char[]>
   std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
                           std::move(wordToLearn), 0);
+    if (isWordBreakKey) {
+        // Remove the word break character for learning
+        wordToLearn = wordToLearn.substr(0, wordToLearn.size() - 1);
+    }
   learnThread.detach();
   reset();
 }

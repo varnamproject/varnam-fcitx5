@@ -31,6 +31,11 @@ FCITX_CONFIGURATION(
     // Enable Learning Words on commit
     Option<bool> shouldLearnWords{this, "Learn Words", _("Learn New Words"),
                                   true};
+
+    // Enable Indic Numbers
+    Option<bool> enableIndicNumbers{this, "EnableIndicNumbers", _("Enable Indic Numbers"),
+                                    false};
+
     // Strictly Follow Schema
     Option<bool> strictlyFollowScheme{
         this, "Strictly Follow Scheme",
