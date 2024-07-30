@@ -36,6 +36,11 @@ FCITX_CONFIGURATION(
     Option<bool> enableIndicNumbers{this, "EnableIndicNumbers", _("Enable Indic Numbers"),
                                     false};
 
+
+    // Enable Indic Numbers
+    Option<bool> enablePunctuation{this, "enablePunctuation", _("Enable punctuation"),
+                                    false};
+
     // Strictly Follow Schema
     Option<bool> strictlyFollowScheme{
         this, "Strictly Follow Scheme",
