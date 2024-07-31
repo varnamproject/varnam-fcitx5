@@ -12,6 +12,7 @@ builddir/
 CMakeFiles/
 meson_options.txt
 meson.options
+CMakeLists.txt.user
 
 compile_commands.json
 .cache/
