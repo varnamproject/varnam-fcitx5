@@ -25,10 +25,4 @@ add_subdirectory(icons)
 install(FILES "com.varnamproject.Fcitx5.Addon.varnamfcitx.metainfo.xml.in" 
   RENAME com.varnamproject.Fcitx5.Addon.varnamfcitx.metainfo.xml DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
 
-set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib)
-install(CODE "
-  execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink 
-  ${CMAKE_INSTALL_PREFIX}/lib/fcitx5/libvarnamfcitx.so /usr/lib/x86_64-linux-gnu/fcitx5/libvarnamfcitx.so)
-")
-
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

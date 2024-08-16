@@ -38,7 +38,7 @@ FCITX_CONFIGURATION(
 
 
     // Enable Indic Numbers
-    Option<bool> enablePunctuation{this, "enablePunctuation", _("Enable punctuation"),
+    Option<bool> enablePunctuation{this, "enablePunctuation", _("Enable Indic Punctuation Marks"),
                                     false};
 
     // Strictly Follow Schema
