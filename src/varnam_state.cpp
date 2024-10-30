@@ -384,7 +384,7 @@ void VarnamState::commitText(const FcitxKeySym &key) {
         if (enablePunctuation) { // If punctuation processing is enabled
             buffer_.clear(); // Clear buffer
             buffer_.push_back(getWordBreakChar(key)[0]); // Add word break char to buffer
-            
+
             // Concatenate result word if available
             if (getVarnamResult() && result_ && varray_length(result_) > 0) {
                 vword *result_word = static_cast<vword *>(varray_get(result_, 0));
@@ -393,8 +393,7 @@ void VarnamState::commitText(const FcitxKeySym &key) {
                 }
             }
         } else {
-            // If punctuation processing is not enabled
-            // Append the punctuation character to stringToCommit
+            // If punctuation processing is not enabled append the punctuation character to stringToCommit
             stringToCommit += getWordBreakChar(key);
             // Set wordToLearn to the base candidate text without punctuation
             wordToLearn = candidates->candidate(candidateSelected).text().toStringForCommit();
@@ -416,13 +415,12 @@ void VarnamState::commitText(const FcitxKeySym &key) {
         stringToCommit.assign(candidates->candidate(candidateSelected).text().toStringForCommit());
     }
 
-      wordToLearn = stringToCommit;
-#ifdef DEBUG_MODE
-    VARNAM_INFO() << "string to commit:" << stringToCommit << " "
-                  << getWordBreakChar(key);
-#endif
+    wordToLearn = stringToCommit;
+
     ic_->commitString(stringToCommit);
-if (stringToCommit.empty() || lastTypedCharIsDigit || isWordBreakKey ||
+
+    // Early exit if learning should be skipped
+    if (stringToCommit.empty() || 
         ic_->capabilityFlags().test(CapabilityFlag::PasswordOrSensitive) ||
         !engine_->getConfig()->shouldLearnWords.value() || !candidateSelected) {
         reset();
@@ -430,18 +428,31 @@ if (stringToCommit.empty() || lastTypedCharIsDigit || isWordBreakKey ||
     }
 
 #ifdef DEBUG_MODE
-    VARNAM_INFO() << "learn word:" << stringToCommit;
+    VARNAM_INFO() << "string to commit:" << stringToCommit;
 #endif
 
-    // Adjust wordToLearn
+    // Adjust wordToLearn by removing only the word break character if `isWordBreakKey` is true
     if (isWordBreakKey && enablePunctuation) {
         wordToLearn = wordToLearn.substr(0, wordToLearn.size() - 1);
     }
+
+    // Remove the last character if it's a digit
+    if (lastTypedCharIsDigit) {
+        wordToLearn = wordToLearn.substr(0, wordToLearn.size() - 1);
+    }
+
+#ifdef DEBUG_MODE
+    VARNAM_INFO() << "Word To Learn:" << wordToLearn; // After adjustments
+#endif
+
+    // Start the learning thread with the word to learn (without word break or digit)
     std::thread learnThread(varnam_learn_word, engine_->getVarnamHandle(),
                             std::move(wordToLearn), 0);
     learnThread.detach();
+
     reset();
 }
+
 
 void VarnamState::updateUI() {
   ic_->inputPanel().reset();
