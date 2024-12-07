@@ -8,17 +8,17 @@ namespace fcitx {
 
 VarnamCandidateWord::VarnamCandidateWord(VarnamEngine *engine, const char *text,
                                          int index)
-    : CandidateWord(Text(std::move(text))), engine_(engine), index_(index) {}
+    : CandidateWord(Text(std::move(text))), m_engine(engine), m_index(index) {}
 
 void VarnamCandidateWord::select(InputContext *inputContext) const {
-  auto state = inputContext->propertyFor(engine_->factory());
-  state->selectCandidate(index_);
+  auto state = inputContext->propertyFor(m_engine->factory());
+  state->selectCandidate(m_index);
 }
 
 VarnamCandidateList::VarnamCandidateList(VarnamEngine *engine, InputContext *ic)
-    : engine_(engine), ic_(ic) {
+    : m_engine(engine), m_ic(ic) {
   const VarnamEngineConfig *config =
-      static_cast<const VarnamEngineConfig *>(engine_->getConfig());
+      static_cast<const VarnamEngineConfig *>(m_engine->getConfig());
   CandidateLayoutHint layout;
   if (!config) {
     VARNAM_WARN() << "Invalid configuration";
@@ -36,7 +36,7 @@ void VarnamCandidateList::prev() {
     setPage(currentPage());
     setCursorPositionAfterPaging(CursorPositionAfterPaging::ResetToFirst);
   }
-  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+  m_ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 void VarnamCandidateList::next() {
@@ -45,33 +45,33 @@ void VarnamCandidateList::next() {
     setPage(currentPage());
     setGlobalCursorIndex(pageSize() * currentPage() - (pageSize() - 1));
   }
-  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+  m_ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 bool VarnamCandidateList::usedNextBefore() const { return true; }
 
 void VarnamCandidateList::prevCandidate() {
   CommonCandidateList::prevCandidate();
-  auto state = ic_->propertyFor(engine_->factory());
+  auto state = m_ic->propertyFor(m_engine->factory());
   int index = globalCursorIndex();
   if (index >= pageSize() && (currentPage() > 0)) {
     setPage(currentPage());
   }
   setGlobalCursorIndex(index);
   state->selectCandidate(cursorIndex());
-  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+  m_ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 void VarnamCandidateList::nextCandidate() {
   CommonCandidateList::nextCandidate();
-  auto state = ic_->propertyFor(engine_->factory());
+  auto state = m_ic->propertyFor(m_engine->factory());
   int index = globalCursorIndex();
   if (index >= pageSize() && (currentPage() < totalPages())) {
     setPage(currentPage());
   }
   setGlobalCursorIndex(index);
   state->selectCandidate(cursorIndex());
-  ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+  m_ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 }
 
 } // namespace fcitx

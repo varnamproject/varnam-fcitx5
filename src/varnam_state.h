@@ -18,16 +18,16 @@ class VarnamState : public InputContextProperty {
 
 private:
   // Private Variables
-  unsigned int cursor;
-  char candidateSelected;
-  bool lastTypedCharIsDigit;
+  unsigned int m_cursor;
+  char m_candidateSelected;
+  bool m_lastTypedCharIsDigit;
 
-  InputContext *ic_;
-  VarnamEngine *engine_;
-  Text preedit_;
+  InputContext *m_ic;
+  VarnamEngine *m_engine;
+  Text m_preedit;
 
-  std::vector<char> buffer_;
-  varray *result_;
+  std::vector<char> m_buffer;
+  varray *m_result;
 
   // Private Methods
 

@@ -13,15 +13,16 @@ extern "C" {
 namespace fcitx {
 
 VarnamEngine::VarnamEngine(Instance *instance)
-    : instance_(instance),
-      factory_([this](InputContext &ic) { return new VarnamState(this, ic); }) {
-  instance->inputContextManager().registerProperty("varnamState", &factory_);
+    : m_instance(instance), m_factory([this](InputContext &ic) {
+        return new VarnamState(this, ic);
+      }) {
+  instance->inputContextManager().registerProperty("varnamState", &m_factory);
 }
 
 VarnamEngine::~VarnamEngine() {
-  factory_.unregister();
-  if (varnam_handle > 0) {
-    int rv = varnam_close(varnam_handle);
+  m_factory.unregister();
+  if (m_varnam_handle > 0) {
+    int rv = varnam_close(m_varnam_handle);
     if (rv != VARNAM_SUCCESS) {
       VARNAM_WARN() << "Failed to close Varnam instance";
     }
@@ -36,24 +37,23 @@ void VarnamEngine::activate(const InputMethodEntry &entry,
   VARNAM_INFO() << "activate scheme:" << entry.uniqueName();
 #endif
   char *schemeName = const_cast<char *>(entry.uniqueName().c_str());
-  int rv = varnam_init_from_id(schemeName, &varnam_handle);
+  int rv = varnam_init_from_id(schemeName, &m_varnam_handle);
   if (rv != VARNAM_SUCCESS) {
     VARNAM_WARN() << "Failed to initialize Varnam";
     throw std::runtime_error("failed to initialize varnam");
   }
 
-  varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_MATCH_EXACT,
-                config_.strictlyFollowScheme.value());
-  varnam_config(varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_SUGGESTIONS_LIMIT,
-                config_.dictionarySuggestionsLimit.value());
-  varnam_config(varnam_handle,
+  varnam_config(m_varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_MATCH_EXACT,
+                m_config.strictlyFollowScheme.value());
+  varnam_config(m_varnam_handle, VARNAM_CONFIG_SET_DICTIONARY_SUGGESTIONS_LIMIT,
+                m_config.dictionarySuggestionsLimit.value());
+  varnam_config(m_varnam_handle,
                 VARNAM_CONFIG_SET_PATTERN_DICTIONARY_SUGGESTIONS_LIMIT,
-                config_.patternDictionarySuggestionsLimit.value());
-  varnam_config(varnam_handle, VARNAM_CONFIG_SET_TOKENIZER_SUGGESTIONS_LIMIT,
-                config_.tokenizerSuggestionsLimit.value());
-  varnam_config(varnam_handle, VARNAM_CONFIG_USE_INDIC_DIGITS,
-                config_.enableIndicNumbers.value());
-
+                m_config.patternDictionarySuggestionsLimit.value());
+  varnam_config(m_varnam_handle, VARNAM_CONFIG_SET_TOKENIZER_SUGGESTIONS_LIMIT,
+                m_config.tokenizerSuggestionsLimit.value());
+  varnam_config(m_varnam_handle, VARNAM_CONFIG_USE_INDIC_DIGITS,
+                m_config.enableIndicNumbers.value());
 }
 
 void VarnamEngine::deactivate(const InputMethodEntry &entry,
@@ -63,13 +63,13 @@ void VarnamEngine::deactivate(const InputMethodEntry &entry,
 #endif
   if (event.type() == EventType::InputContextSwitchInputMethod) {
     auto ic = event.inputContext();
-    auto state = ic->propertyFor(&factory_);
+    auto state = ic->propertyFor(&m_factory);
     state->commitText();
     state->updateUI();
   }
   reset(entry, event);
-  if (varnam_handle > 0) {
-    varnam_close(varnam_handle);
+  if (m_varnam_handle > 0) {
+    varnam_close(m_varnam_handle);
   }
 }
 
@@ -114,7 +114,7 @@ void VarnamEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &keyEvent) {
     return;
   }
   auto ic = keyEvent.inputContext();
-  auto state = ic->propertyFor(&factory_);
+  auto state = ic->propertyFor(&m_factory);
   state->processKeyEvent(keyEvent);
 }
 
@@ -122,17 +122,17 @@ void VarnamEngine::reset(const InputMethodEntry &entry,
                          InputContextEvent &event) {
   FCITX_UNUSED(entry);
   auto ic = event.inputContext();
-  auto state = ic->propertyFor(&factory_);
+  auto state = ic->propertyFor(&m_factory);
   state->reset();
   state->updateUI();
 }
 
 void VarnamEngine::setConfig(const RawConfig &config) {
-  config_.load(config);
-  safeSaveAsIni(config_, "conf/varnam.conf");
+  m_config.load(config);
+  safeSaveAsIni(m_config, "conf/varnam.conf");
 }
 
-void VarnamEngine::reloadConfig() { readAsIni(config_, "conf/varnam.conf"); }
+void VarnamEngine::reloadConfig() { readAsIni(m_config, "conf/varnam.conf"); }
 
 } // namespace fcitx
 

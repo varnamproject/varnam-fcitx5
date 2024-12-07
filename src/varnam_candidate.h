@@ -10,8 +10,8 @@ namespace fcitx {
 
 class VarnamCandidateWord : public CandidateWord {
 private:
-  VarnamEngine *engine_;
-  int index_;
+  VarnamEngine *m_engine;
+  int m_index;
 
 public:
   VarnamCandidateWord(VarnamEngine *engine, const char *text, int index);
@@ -21,8 +21,8 @@ public:
 
 class VarnamCandidateList : public CommonCandidateList {
 private:
-  VarnamEngine *engine_;
-  InputContext *ic_;
+  VarnamEngine *m_engine;
+  InputContext *m_ic;
 
 public:
   VarnamCandidateList(VarnamEngine *engine, InputContext *ic);

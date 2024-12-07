@@ -16,11 +16,11 @@ class VarnamState;
 class VarnamEngine : public InputMethodEngineV3 {
 
 private:
-  int varnam_handle;
-  Instance *instance_;
-  VarnamEngineConfig config_;
-  KeyState selectionKeyModifer_;
-  FactoryFor<VarnamState> factory_;
+  int m_varnam_handle;
+  Instance *m_instance;
+  VarnamEngineConfig m_config;
+  KeyState m_selectionKeyModifer;
+  FactoryFor<VarnamState> m_factory;
 
 public:
   VarnamEngine(Instance *instance);
@@ -38,17 +38,17 @@ public:
 
   std::vector<InputMethodEntry> listInputMethods() override;
 
-  auto factory() { return &factory_; }
+  auto factory() { return &m_factory; }
 
   void setConfig(const RawConfig &) override;
 
   void reloadConfig() override;
 
-  const VarnamEngineConfig *getConfig() const override { return &config_; }
+  const VarnamEngineConfig *getConfig() const override { return &m_config; }
 
-  const KeyState &getSelectionModifer() const { return selectionKeyModifer_; }
+  const KeyState &getSelectionModifer() const { return m_selectionKeyModifer; }
 
-  int getVarnamHandle() const { return varnam_handle; }
+  int getVarnamHandle() const { return m_varnam_handle; }
 };
 
 class VarnamEngineFactory : public AddonFactory {
