@@ -377,6 +377,8 @@ void VarnamState::commitText(const FcitxKeySym &key) {
     if (isWordBreakKey) {
         if (candidates && candidates->cursorIndex() >= 0) {
             stringToCommit = candidates->candidate(candidates->cursorIndex()).text().toStringForCommit();
+            wordToLearn = stringToCommit;
+            candidateSelected = 1;
         } else {
             stringToCommit = preedit_.toStringForCommit();
         }
@@ -393,10 +395,7 @@ void VarnamState::commitText(const FcitxKeySym &key) {
                 }
             }
         } else {
-            // If punctuation processing is not enabled append the punctuation character to stringToCommit
             stringToCommit += getWordBreakChar(key);
-            // Set wordToLearn to the base candidate text without punctuation
-            wordToLearn = candidates->candidate(candidateSelected).text().toStringForCommit();
         }
     } else if (key == FcitxKey_Escape || key == FcitxKey_0 ||
                !candidates || candidates->size() <= 1 || !result_ || varray_is_empty(result_)) {
@@ -408,19 +407,19 @@ void VarnamState::commitText(const FcitxKeySym &key) {
         vword *first_result = static_cast<vword *>(varray_get(result_, 0));
         if (first_result) {
             stringToCommit.assign(first_result->text);
+            wordToLearn = stringToCommit;
             candidateSelected = 1;
         }
     } else {
         // Handle regular candidate selection
         stringToCommit.assign(candidates->candidate(candidateSelected).text().toStringForCommit());
+        wordToLearn = stringToCommit;
     }
-
-    wordToLearn = stringToCommit;
 
     ic_->commitString(stringToCommit);
 
     // Early exit if learning should be skipped
-    if (stringToCommit.empty() || 
+    if (stringToCommit.empty() || lastTypedCharIsDigit ||
         ic_->capabilityFlags().test(CapabilityFlag::PasswordOrSensitive) ||
         !engine_->getConfig()->shouldLearnWords.value() || !candidateSelected) {
         reset();
@@ -430,16 +429,6 @@ void VarnamState::commitText(const FcitxKeySym &key) {
 #ifdef DEBUG_MODE
     VARNAM_INFO() << "string to commit:" << stringToCommit;
 #endif
-
-    // Adjust wordToLearn by removing only the word break character if `isWordBreakKey` is true
-    if (isWordBreakKey && enablePunctuation) {
-        wordToLearn = wordToLearn.substr(0, wordToLearn.size() - 1);
-    }
-
-    // Remove the last character if it's a digit
-    if (lastTypedCharIsDigit) {
-        wordToLearn = wordToLearn.substr(0, wordToLearn.size() - 1);
-    }
 
 #ifdef DEBUG_MODE
     VARNAM_INFO() << "Word To Learn:" << wordToLearn; // After adjustments
